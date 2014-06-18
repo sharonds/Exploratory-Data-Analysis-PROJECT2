@@ -1,0 +1,151 @@
+https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip
+#####1
+# Read data files
+NEI <- readRDS("data_mp2/summarySCC_PM25.rds")
+SCC <- readRDS("data_mp2/Source_Classification_Code.rds")
+
+# Have total emissions from PM2.5 decreased in the United States from 1999 to
+# 2008?
+total.emissions <- aggregate(Emissions ~ year, NEI, sum)
+
+png('plot1.png')
+barplot(height=total.emissions$Emissions, names.arg=total.emissions$year,
+        xlab="years", ylab=expression('total PM'[2]*' emission'),
+        main=expression('Total PM'[2]*' emissions at various years'))
+dev.off()
+
+####2
+# Read data files
+NEI <- readRDS("data_mp2/summarySCC_PM25.rds")
+SCC <- readRDS("data_mp2/Source_Classification_Code.rds")
+
+# Have total emissions from PM2.5 decreased in Baltimore City, Maryland from
+# 1999 to 2008?
+bmore.emissions <- NEI[NEI$fips=="24510",]
+# group emissions by year
+bmore.emissions.by.year <- aggregate(Emissions ~ year, bmore.emissions, sum)
+
+png('plot2.png')
+barplot(height=bmore.emissions.by.year$Emissions,
+        names.arg=bmore.emissions.by.year$year,
+        xlab="years", ylab=expression('total PM'[2]*' emission'),
+        main=expression('Total PM'[2]*' emissions in Baltimore City, '*
+            'Maryland at various years'))
+dev.off()
+
+
+####3
+# Read data files
+NEI <- readRDS("data/summarySCC_PM25.rds")
+SCC <- readRDS("data/Source_Classification_Code.rds")
+
+# Of the four types of sources indicated by the type (point, nonpoint, onroad,
+# nonroad) variable, which of these four sources have seen decreases in
+# emissions from 1999–2008 for Baltimore City? Which have seen increases in
+# emissions from 1999–2008?
+bmore.emissions <- NEI[NEI$fips=="24510",]
+
+# Group data by year and type of the source
+bmore.emissions.aggr <- aggregate(Emissions ~ year + type,
+                                  data=bmore.emissions,
+                                  FUN=sum)
+
+library(ggplot2)
+png("plot3.png", height=480, width=680)
+ggplot(bmore.emissions.aggr, aes(x=factor(year), y=Emissions, fill=type)) +
+    geom_bar(stat="identity") +
+    facet_grid(. ~ type) +
+    xlab("year") +
+    ylab(expression("total PM"[2.5]*" emission")) +
+    ggtitle(expression("PM"[2.5]*paste(" emissions in Baltimore ",
+                                       "City by various source types", sep="")))
+dev.off()
+
+##4
+# Read data files
+NEI <- readRDS("data_mp2/summarySCC_PM25.rds")
+SCC <- readRDS("data_mp2/Source_Classification_Code.rds")
+
+
+# Across the United States, how have emissions from coal combustion-related
+# sources changed from 1999 to 2008?
+
+# Find coal combustion-related sources
+is.combustion.coal <- grepl("Fuel Comb.*Coal", SCC$EI.Sector)
+combustion.coal.sources <- SCC[is.combustion.coal,]
+
+# Find emissions from coal combustion-related sources
+emissions <- NEI[(NEI$SCC %in% combustion.coal.sources$SCC), ]
+
+# group by year
+emissions.by.year <- aggregate(Emissions ~ year, data=emissions, FUN=sum)
+
+# plot
+library(ggplot2)
+png("plot4.png")
+ggplot(emissions.by.year, aes(x=factor(year), y=Emissions)) +
+  geom_bar(stat="identity") +
+  xlab("year") +
+  ylab(expression("total PM"[2.5]*" emissions")) +
+  ggtitle("Emissions from coal combustion-related sources")
+dev.off()
+
+##5
+# Read data files
+NEI <- readRDS("data_mp2/summarySCC_PM25.rds")
+SCC <- readRDS("data_mp2/Source_Classification_Code.rds")
+
+
+# How have emissions from motor vehicle sources changed from 1999–2008 in
+# Baltimore City?
+
+# Get Baltimore emissions from motor vehicle sources
+bmore.emissions <- NEI[(NEI$fips=="24510") & (NEI$type=="ON-ROAD"),]
+bmore.emissions.aggr <- aggregate(Emissions ~ year, data=bmore.emissions, FUN=sum)
+
+# plot
+library(ggplot2)
+png("plot5.png")
+ggplot(bmore.emissions.aggr, aes(x=factor(year), y=Emissions)) +
+  geom_bar(stat="identity") +
+  xlab("year") +
+  ylab(expression("total PM"[2.5]*" emissions")) +
+  ggtitle("Emissions from motor vehicle sources in Baltimore City")
+dev.off()
+
+#6
+# Read data files
+NEI <- readRDS("data_mp2/summarySCC_PM25.rds")
+SCC <- readRDS("data_mp2/Source_Classification_Code.rds")
+
+
+
+# Compare emissions from motor vehicle sources in Baltimore City with emissions
+# from motor vehicle sources in Los Angeles County, California (fips ==
+# "06037"). Which city has seen greater changes over time in motor vehicle
+# emissions?
+
+normalize <- function(x) {(x-min(x)) / (max(x)-min(x))}
+
+# Get Baltimore emissions from motor vehicle sources
+bmore.emissions <- NEI[(NEI$fips=="24510") & (NEI$type=="ON-ROAD"),]
+bmore.emissions.aggr <- aggregate(Emissions ~ year, data=bmore.emissions, FUN=sum)
+
+# Get Los Angeles emissions from motor vehicle sources
+la.emissions <- NEI[(NEI$fips=="06037") & (NEI$type=="ON-ROAD"),]
+la.emissions.aggr <- aggregate(Emissions ~ year, data=la.emissions, FUN=sum)
+
+bmore.emissions.aggr$County <- "Baltimore City, MD"
+la.emissions.aggr$County <- "Los Angeles County, CA"
+both.emissions <- rbind(bmore.emissions.aggr, la.emissions.aggr)
+
+# plot
+library(ggplot2)
+png("plot6.png")
+ggplot(both.emissions, aes(x=factor(year), y=Emissions, fill=County)) +
+  geom_bar(stat="identity") +
+  facet_grid(County ~ ., scales="free") +
+  ylab("total emissions (tons)") +
+  xlab("year") +
+  ggtitle(expression("Motor vehicle emission variation\nin Baltimore and Los Angeles"))
+dev.off()
